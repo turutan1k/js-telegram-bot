@@ -1,33 +1,20 @@
 const TelegramApi = require('node-telegram-bot-api');
 
+const { gameOptions, againOptions } = require('./options.js');
+
 const token = '5347152400:AAH-FPHmejo65ciHq04oP82XZXr43Mg9O_o';
 
 const bot = new TelegramApi(token, { polling: true });
 
 const chats = {};
 
-const gameOptions = {
-    reply_markup: JSON.stringify({
-        inline_keyboard: [
-            [
-                { text: '1', callback_data: '1' },
-                { text: '2', callback_data: '2' },
-                { text: '3', callback_data: '3' },
-            ],
-            [
-                { text: '4', callback_data: '4' },
-                { text: '5', callback_data: '5' },
-                { text: '6', callback_data: '6' },
-            ],
-            [
-                { text: '7', callback_data: '7' },
-                { text: '8', callback_data: '8' },
-                { text: '9', callback_data: '9' },
-            ],
-            [{ text: '0', callback_data: '0' }],
-        ],
-    }),
+const startGame = async (chatId) => {
+    await bot.sendMessage(chatId, `Я загадал число от 0 до 9`);
+    const randomNumber = Math.floor(Math.random() * 10);
+    chats[chatId] = randomNumber;
+    await bot.sendMessage(chatId, `Отгадай)`, gameOptions);
 };
+
 const start = () => {
     bot.setMyCommands([
         { command: '/start', description: 'Начальное приветствие' },
@@ -84,18 +71,17 @@ const start = () => {
             );
         }
         if (text === '/game') {
-            await bot.sendMessage(chatId, `Я загадал число от 0 до 9`);
-            await bot.sendMessage(chatId, `...`);
-            const randomNumber = Math.floor(Math.random() * 10);
-            chatId[chatId] = randomNumber;
-            return bot.sendMessage(chatId, `Отгадай)`, gameOptions);
+            return startGame(chatId);
         }
         return bot.sendMessage(chatId, badRequest);
     });
 
-    bot.on('callback_query', (msg) => {
+    bot.on('callback_query', async (msg) => {
         const data = msg.data;
         const chatId = msg.message.chat.id;
+        if (data === '/again') {
+            return startGame(chatId);
+        }
         if (data === chats[chatId]) {
             return bot.sendMessage(
                 chatId,
@@ -110,14 +96,6 @@ const start = () => {
             );
         }
     });
-
-    const againOptions = {
-        reply_markup: JSON.stringify({
-            inline_keyboard: [
-                [{ text: 'Играть еще раз?', callback_data: '/again' }],
-            ],
-        }),
-    };
 };
 
 start();
